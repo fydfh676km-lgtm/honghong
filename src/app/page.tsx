@@ -511,7 +511,7 @@ export default function Home() {
 
             {/* 标题 */}
             <div className="text-center space-y-2">
-              <h1 className="text-3xl font-bold text-green-600">
+              <h1 className="text-3xl font-bold text-green-800">
                 哄哄模拟器
               </h1>
               <p className="text-gray-600">练习哄人技巧，提升沟通能力</p>
