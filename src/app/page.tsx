@@ -511,8 +511,12 @@ export default function Home() {
 
             {/* 标题 */}
             <div className="text-center space-y-2">
-              <h1 className="text-3xl font-bold text-green-600">
-                哄哄模拟器
+              <h1 className="text-3xl font-bold">
+                <span className="text-red-500">哄</span>
+                <span className="text-orange-500">哄</span>
+                <span className="text-yellow-500">模</span>
+                <span className="text-green-500">拟</span>
+                <span className="text-blue-500">器</span>
               </h1>
               <p className="text-gray-600">练习哄人技巧，提升沟通能力</p>
               <div className="flex gap-3">
