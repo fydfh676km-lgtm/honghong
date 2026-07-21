@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { getDb } from '@/storage/database/pg-client';
+import { ensureSchema } from '@/storage/database/init-schema';
 import { users } from '@/storage/database/shared/schema';
 
 export async function POST(request: NextRequest) {
@@ -15,6 +16,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    await ensureSchema();
 
     const db = getDb();
     const [user] = await db

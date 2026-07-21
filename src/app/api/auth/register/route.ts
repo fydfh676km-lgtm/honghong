@@ -2,7 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
 import { getDb } from '@/storage/database/pg-client';
+import { ensureSchema } from '@/storage/database/init-schema';
 import { users } from '@/storage/database/shared/schema';
+
+function isPostgresError(error: unknown): error is { code?: string } {
+  return typeof error === 'object' && error !== null && 'code' in error;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,6 +34,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    await ensureSchema();
 
     const db = getDb();
     const existingUser = await db
@@ -75,6 +82,14 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('注册错误:', error);
+
+    if (isPostgresError(error) && error.code === '23505') {
+      return NextResponse.json(
+        { error: '用户名已存在' },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { error: '服务器错误' },
       { status: 500 }
