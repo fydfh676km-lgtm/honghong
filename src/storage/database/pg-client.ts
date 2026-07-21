@@ -5,9 +5,9 @@ let pool: Pool | null = null;
 let db: ReturnType<typeof drizzle> | null = null;
 
 function getConnectionString(): string {
-  const connectionString = process.env.PGDATABASE_URL;
+  const connectionString = process.env.PGDATABASE_URL ?? process.env.DATABASE_URL;
   if (!connectionString) {
-    throw new Error('PGDATABASE_URL is not set');
+    throw new Error('PGDATABASE_URL or DATABASE_URL is not set');
   }
   return connectionString;
 }
