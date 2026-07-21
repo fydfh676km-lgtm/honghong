@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { LLMClient, Config, HeaderUtils } from 'coze-coding-dev-sdk';
+import { invokeLLM } from '@/lib/llm';
 import { desc, eq } from 'drizzle-orm';
 import { getDb } from '@/storage/database/pg-client';
 import { blogPosts } from '@/storage/database/shared/schema';
@@ -77,12 +77,8 @@ export async function POST(request: NextRequest) {
 
 要求：300-500字，口语化，像朋友聊天一样，可以适当用emoji增加趣味感。`;
 
-    const config = new Config();
-    const customHeaders = HeaderUtils.extractForwardHeaders(request.headers);
-    const client = new LLMClient(config, customHeaders);
-
     const messages = [{ role: 'user' as const, content: prompt }];
-    const response = await client.invoke(messages, { temperature: 0.8 });
+    const response = await invokeLLM(messages, { temperature: 0.8 });
 
     const content = response.content || '';
     const summary = content.slice(0, 100) + '...';

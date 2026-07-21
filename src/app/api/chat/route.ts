@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { LLMClient, Config, HeaderUtils } from 'coze-coding-dev-sdk';
+import { invokeLLM } from '@/lib/llm';
 import type { Message } from '@/types';
 
 // 存储会话数据（临时方案，实际应该用更可靠的存储）
@@ -26,11 +26,6 @@ export async function POST(request: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: '会话不存在' }, { status: 404 });
     }
-
-    // 提取请求头
-    const customHeaders = HeaderUtils.extractForwardHeaders(request.headers);
-    const config = new Config();
-    const client = new LLMClient(config, customHeaders);
 
     // 构建系统提示词
     const roleLabel = session.roleType === 'girlfriend' ? '女友' : '男友';
@@ -89,8 +84,7 @@ ${personalityConfig}
     };
 
     // 调用LLM生成回复
-    const response = await client.invoke(messages, {
-      model: 'doubao-seed-1-8-251228',
+    const response = await invokeLLM(messages, {
       temperature: 0.8,
     });
 
@@ -207,10 +201,6 @@ export async function PUT(request: NextRequest) {
     });
 
     // 生成初始消息
-    const customHeaders = HeaderUtils.extractForwardHeaders(request.headers);
-    const config = new Config();
-    const client = new LLMClient(config, customHeaders);
-
     const roleLabel = roleType === 'girlfriend' ? '女友' : '男友';
     const personalityConfig = getPersonalityPrompt(personalityId);
     const scenarioDesc = customScenario || getScenarioDescription(scenarioId || '');
@@ -225,11 +215,10 @@ export async function PUT(request: NextRequest) {
 回复要自然、口语化，符合你的性格特点。
 回复要简洁，一般1-2句话即可。`;
 
-    const response = await client.invoke([
+    const response = await invokeLLM([
       { role: 'system', content: systemPrompt },
       { role: 'user', content: '你好，我想和你聊聊...' },
     ], {
-      model: 'doubao-seed-1-8-251228',
       temperature: 0.8,
     });
 

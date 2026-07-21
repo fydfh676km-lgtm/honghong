@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { invokeLLM } from '@/lib/llm';
 import { sessions } from '../chat/route';
-import { LLMClient, Config, HeaderUtils } from 'coze-coding-dev-sdk';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,11 +37,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // 使用LLM分析踩雷原因和改进建议
-    const customHeaders = HeaderUtils.extractForwardHeaders(request.headers);
-    const config = new Config();
-    const client = new LLMClient(config, customHeaders);
-
     const roleLabel = session.roleType === 'girlfriend' ? '女友' : '男友';
 
     const analysisPrompt = `作为一个情感沟通专家，请分析以下对话中用户踩雷的原因，并给出改进建议。
@@ -64,10 +59,9 @@ ${trapMessages.map(msg => `- "${msg.content}"`).join('\n')}
 
 `;
 
-    const response = await client.invoke([
+    const response = await invokeLLM([
       { role: 'user', content: analysisPrompt },
     ], {
-      model: 'doubao-seed-1-8-251228',
       temperature: 0.7,
     });
 

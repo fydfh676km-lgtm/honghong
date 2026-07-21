@@ -1,5 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js';
-import { LLMClient, Config } from 'coze-coding-dev-sdk';
+import { invokeLLM } from '../src/lib/llm';
 import { randomUUID } from 'crypto';
 import { getSupabaseClient } from '../src/storage/database/supabase-client';
 
@@ -46,11 +46,8 @@ function generatePrompt(title: string): string {
 }
 
 async function generateArticleContent(title: string): Promise<string> {
-  const config = new Config();
-  const client = new LLMClient(config);
-
   const messages = [{ role: 'user' as const, content: generatePrompt(title) }];
-  const response = await client.invoke(messages, { model: 'doubao-seed-1-8-251228', temperature: 0.8 });
+  const response = await invokeLLM(messages, { temperature: 0.8 });
 
   return response.content || '';
 }
