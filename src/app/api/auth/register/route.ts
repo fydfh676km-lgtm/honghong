@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { eq } from 'drizzle-orm';
-import { getDb } from '@/storage/database/pg-client';
+import { getDb, getDatabaseEnvStatus } from '@/storage/database/pg-client';
 import { ensureSchema } from '@/storage/database/init-schema';
 import { users } from '@/storage/database/shared/schema';
 
@@ -55,8 +55,7 @@ export async function POST(request: NextRequest) {
   try {
     // #region agent log
     debugLog('A', 'register/route.ts:POST:entry', 'register request started', {
-      hasPgDatabaseUrl: Boolean(process.env.PGDATABASE_URL),
-      hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+      ...getDatabaseEnvStatus(),
       isVercel: Boolean(process.env.VERCEL),
     });
     // #endregion
@@ -144,6 +143,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: '用户名已存在' },
         { status: 400 }
+      );
+    }
+
+    if (safeError.message.includes('DB_ENV_MISSING')) {
+      return NextResponse.json(
+        {
+          error: '服务未配置数据库，请在 Vercel 环境变量中添加 DATABASE_URL',
+          debugStage: safeError.code,
+          debugMessage: safeError.message,
+        },
+        { status: 500 }
       );
     }
 

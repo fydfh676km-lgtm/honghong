@@ -4,6 +4,14 @@ import { Pool } from 'pg';
 let pool: Pool | null = null;
 let db: ReturnType<typeof drizzle> | null = null;
 
+const DB_ENV_KEYS = [
+  'PGDATABASE_URL',
+  'DATABASE_URL',
+  'POSTGRES_URL',
+  'POSTGRES_URL_NON_POOLING',
+  'POSTGRES_PRISMA_URL',
+] as const;
+
 function normalizeConnectionString(connectionString: string): string {
   let normalized = connectionString;
 
@@ -16,11 +24,22 @@ function normalizeConnectionString(connectionString: string): string {
 }
 
 function getConnectionString(): string {
-  const connectionString = process.env.PGDATABASE_URL ?? process.env.DATABASE_URL;
-  if (!connectionString) {
-    throw new Error('DB_ENV_MISSING: PGDATABASE_URL or DATABASE_URL is not set');
+  for (const key of DB_ENV_KEYS) {
+    const value = process.env[key];
+    if (value) {
+      return normalizeConnectionString(value);
+    }
   }
-  return normalizeConnectionString(connectionString);
+
+  throw new Error(
+    `DB_ENV_MISSING: set one of ${DB_ENV_KEYS.join(', ')} in Vercel Environment Variables`,
+  );
+}
+
+function getDatabaseEnvStatus(): Record<string, boolean> {
+  return Object.fromEntries(
+    DB_ENV_KEYS.map((key) => [key, Boolean(process.env[key])]),
+  );
 }
 
 function shouldUseSsl(connectionString: string): boolean {
@@ -51,4 +70,4 @@ function getDb() {
   return db;
 }
 
-export { getDb, getPool };
+export { getDb, getPool, getDatabaseEnvStatus, DB_ENV_KEYS };
