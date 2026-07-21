@@ -18,7 +18,7 @@ function normalizeConnectionString(connectionString: string): string {
 function getConnectionString(): string {
   const connectionString = process.env.PGDATABASE_URL ?? process.env.DATABASE_URL;
   if (!connectionString) {
-    throw new Error('PGDATABASE_URL or DATABASE_URL is not set');
+    throw new Error('DB_ENV_MISSING: PGDATABASE_URL or DATABASE_URL is not set');
   }
   return normalizeConnectionString(connectionString);
 }

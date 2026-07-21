@@ -5,12 +5,62 @@ import { getDb } from '@/storage/database/pg-client';
 import { ensureSchema } from '@/storage/database/init-schema';
 import { users } from '@/storage/database/shared/schema';
 
-function isPostgresError(error: unknown): error is { code?: string } {
+const DEBUG_ENDPOINT = 'http://127.0.0.1:7688/ingest/64ddcd07-a1be-41a7-b8c2-7f8fd42ad0a8';
+const DEBUG_SESSION = '5dd60b';
+
+function debugLog(
+  hypothesisId: string,
+  location: string,
+  message: string,
+  data: Record<string, unknown>,
+): void {
+  // #region agent log
+  fetch(DEBUG_ENDPOINT, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Debug-Session-Id': DEBUG_SESSION,
+    },
+    body: JSON.stringify({
+      sessionId: DEBUG_SESSION,
+      runId: 'register-debug',
+      hypothesisId,
+      location,
+      message,
+      data,
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+}
+
+function isPostgresError(error: unknown): error is { code?: string; message?: string } {
   return typeof error === 'object' && error !== null && 'code' in error;
+}
+
+function getSafeErrorInfo(error: unknown): { code: string; message: string } {
+  if (error instanceof Error) {
+    return { code: 'ERROR', message: error.message };
+  }
+  if (isPostgresError(error)) {
+    return {
+      code: error.code ?? 'PG_ERROR',
+      message: error.message ?? 'postgres error',
+    };
+  }
+  return { code: 'UNKNOWN', message: 'unknown error' };
 }
 
 export async function POST(request: NextRequest) {
   try {
+    // #region agent log
+    debugLog('A', 'register/route.ts:POST:entry', 'register request started', {
+      hasPgDatabaseUrl: Boolean(process.env.PGDATABASE_URL),
+      hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+      isVercel: Boolean(process.env.VERCEL),
+    });
+    // #endregion
+
     const body = await request.json();
     const { username, password } = body;
 
@@ -36,6 +86,9 @@ export async function POST(request: NextRequest) {
     }
 
     await ensureSchema();
+    // #region agent log
+    debugLog('C', 'register/route.ts:POST:after-schema', 'ensureSchema succeeded', {});
+    // #endregion
 
     const db = getDb();
     const existingUser = await db
@@ -81,7 +134,11 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('注册错误:', error);
+    const safeError = getSafeErrorInfo(error);
+    console.error('注册错误:', safeError, error);
+    // #region agent log
+    debugLog('B', 'register/route.ts:POST:catch', 'register failed', safeError);
+    // #endregion
 
     if (isPostgresError(error) && error.code === '23505') {
       return NextResponse.json(
@@ -91,7 +148,11 @@ export async function POST(request: NextRequest) {
     }
 
     return NextResponse.json(
-      { error: '服务器错误' },
+      {
+        error: '服务器错误',
+        debugStage: safeError.code,
+        debugMessage: safeError.message,
+      },
       { status: 500 }
     );
   }
