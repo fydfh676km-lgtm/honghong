@@ -4,6 +4,7 @@ import { eq } from 'drizzle-orm';
 import { getDb, getDatabaseEnvStatus } from '@/storage/database/pg-client';
 import { ensureSchema } from '@/storage/database/init-schema';
 import { users } from '@/storage/database/shared/schema';
+import { isTurnstileEnabled, verifyTurnstileToken } from '@/lib/turnstile';
 
 const DEBUG_ENDPOINT = 'http://127.0.0.1:7688/ingest/64ddcd07-a1be-41a7-b8c2-7f8fd42ad0a8';
 const DEBUG_SESSION = '5dd60b';
@@ -61,7 +62,28 @@ export async function POST(request: NextRequest) {
     // #endregion
 
     const body = await request.json();
-    const { username, password } = body;
+    const { username, password, turnstileToken } = body as {
+      username?: string;
+      password?: string;
+      turnstileToken?: string;
+    };
+
+    if (isTurnstileEnabled()) {
+      const remoteIp =
+        request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+        request.headers.get('x-real-ip') ??
+        undefined;
+      const turnstileValid = await verifyTurnstileToken(
+        turnstileToken ?? '',
+        remoteIp,
+      );
+      if (!turnstileValid) {
+        return NextResponse.json(
+          { error: '人机验证失败，请重试' },
+          { status: 400 },
+        );
+      }
+    }
 
     if (!username || !password) {
       return NextResponse.json(

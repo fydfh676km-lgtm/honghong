@@ -3,30 +3,44 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { Turnstile } from '@marsidev/react-turnstile';
 
 export default function RegisterPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const siteKey = process.env.NEXT_PUBLIC_CLOUDFLARE_TURNSTILE_SITE_KEY;
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
 
+    if (siteKey && !turnstileToken) {
+      setError('请完成人机验证');
+      setLoading(false);
+      return;
+    }
+
     try {
       const response = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({
+          username,
+          password,
+          turnstileToken: turnstileToken || undefined,
+        }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
         setError(data.error || '注册失败');
+        setTurnstileToken('');
         return;
       }
 
@@ -81,6 +95,15 @@ export default function RegisterPage() {
               required
             />
           </div>
+
+          {siteKey && (
+            <div className="flex justify-center">
+              <Turnstile
+                siteKey={siteKey}
+                onSuccess={setTurnstileToken}
+              />
+            </div>
+          )}
 
           {error && (
             <div className="text-red-500 text-sm text-center">{error}</div>
