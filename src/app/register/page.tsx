@@ -96,17 +96,17 @@ export default function RegisterPage() {
             />
           </div>
 
+          {error && (
+            <div className="text-red-500 text-sm text-center">{error}</div>
+          )}
+
           {siteKey && (
             <div className="flex justify-center">
               <Turnstile
                 siteKey={siteKey}
-                onSuccess={setTurnstileToken}
+                onSuccess={(token) => setTurnstileToken(token)}
               />
             </div>
-          )}
-
-          {error && (
-            <div className="text-red-500 text-sm text-center">{error}</div>
           )}
 
           <button
